@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SPECIALIST
+  CLIENT
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  phone     String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  specialistProfile      SpecialistProfile?
+  appointmentsAsClient   Appointment[]      @relation("ClientAppointments")
+  appointmentsAsSpecialist Appointment[]      @relation("SpecialistAppointments")
+  articles               Article[]
+  aiChatSessions         AiChatSession[]
+}
+
+model SpecialistProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug            String   @unique
+  bio             String   @db.Text
+  education       String   @db.Text
+  specializations String[]
+  videoIntroUrl   String?
+  socialLinks     Json?
+  rating          Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  aiChatSessions AiChatSession[]
+}
+
+model Specialization {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String @db.Text
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  clientId     String
+  client       User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  specialistId String
+  specialist   User              @relation("SpecialistAppointments", fields: [specialistId], references: [id], onDelete: Cascade)
+  startTime    DateTime
+  endTime      DateTime
+  status       AppointmentStatus @default(PENDING)
+  meetingLink  String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([specialistId, startTime])
+  @@index([clientId])
+}
+
+model AiChatSession {
+  id           String             @id @default(cuid())
+  clientId     String
+  client       User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  specialistId String?
+  specialist   SpecialistProfile? @relation(fields: [specialistId], references: [id], onDelete: SetNull)
+  transcript   String             @db.Text
+  createdAt    DateTime           @default(now())
+
+  @@index([clientId])
+  @@index([specialistId])
+}
+
+model Article {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  content         String   @db.Text
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  videoPodcastUrl String?
+  published       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  date        DateTime
+  location    String?
+  link        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

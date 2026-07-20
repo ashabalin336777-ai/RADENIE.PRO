@@ -1,0 +1,42 @@
+export const specialistsPreview = [
+  {
+    id: "1",
+    slug: "elena-volkova",
+    name: "Елена Волкова",
+    specialization: "Семейный психолог и секс-коучинг",
+    experience: "12 лет практики",
+    rating: 4.9,
+  },
+  {
+    id: "2",
+    slug: "marina-sokolova",
+    name: "Марина Соколова",
+    specialization: "Весисвет метод",
+    experience: "8 лет практики",
+    rating: 4.8,
+  },
+  {
+    id: "3",
+    slug: "dmitry-orlov",
+    name: "Дмитрий Орлов",
+    specialization: "Финансовые расстановки",
+    experience: "10 лет практики",
+    rating: 4.9,
+  },
+  {
+    id: "4",
+    slug: "anna-kuznetsova",
+    name: "Анна Кузнецова",
+    specialization: "Отношения с собой и партнёром",
+    experience: "9 лет практики",
+    rating: 5.0,
+  },
+  {
+    id: "5",
+    slug: "sergey-ilin",
+    name: "Сергей Ильин",
+    specialization: "Телесная терапия",
+    experience: "11 лет практики",
+    rating: 4.9,
+  },
+] as const;
