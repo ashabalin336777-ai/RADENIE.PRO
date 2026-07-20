@@ -37,8 +37,8 @@ services:
     environment:
       PORT: "3000"
       DATABASE_URL: postgresql://radenie:radenie_secret@postgres:5432/radenie_pro
-      NEXTAUTH_URL: http://localhost:${PUBLIC_PORT:-8080}
-      NEXTAUTH_SECRET: ${SESSION_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://radenie.pro}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${SESSION_SECRET}}
     depends_on:
       postgres:
         condition: service_healthy

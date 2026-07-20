@@ -8,8 +8,8 @@ const rootEnvPath = path.join(frontendDir, "..", ".env");
 const localEnvPath = path.join(frontendDir, ".env.local");
 
 if (!fs.existsSync(rootEnvPath)) {
-  console.error("Не найден ../.env — скопируйте .env.example в .env в корне проекта");
-  process.exit(1);
+  console.warn("⚠ ../.env не найден — пропуск (Docker build или локальный Frontend/.env.local)");
+  process.exit(0);
 }
 
 let content = fs.readFileSync(rootEnvPath, "utf8");
