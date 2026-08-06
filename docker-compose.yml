@@ -25,10 +25,15 @@ services:
       - .env
     environment:
       PORT: "4000"
+      DATABASE_URL: postgresql://radenie:radenie_secret@postgres:5432/radenie_pro
+      ALLOW_ADMIN_RESET: ${ALLOW_ADMIN_RESET:-0}
+      ADMIN_RESET_TOKEN: ${ADMIN_RESET_TOKEN:-}
     restart: unless-stopped
     networks:
       - radenie
-
+    depends_on:
+      postgres:
+        condition: service_healthy
   frontend:
     build:
       context: ./Frontend
