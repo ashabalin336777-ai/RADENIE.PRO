@@ -173,6 +173,39 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                   className="space-y-4"
                 >
                   <input type="hidden" name="userId" value={selected.userId} />
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
+                      {selected.user.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={selected.user.avatarUrl}
+                          alt={selected.user.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-semibold">
+                          {selected.user.name
+                            .split(" ")
+                            .map((p) => p[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <label className="text-sm font-medium">Фото (URL)</label>
+                      <Input
+                        name="avatarUrl"
+                        defaultValue={selected.user.avatarUrl ?? ""}
+                        placeholder="https://example.com/photo.jpg"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ссылка на изображение (jpg/png/webp). Загрузка файлов —
+                        позже.
+                      </p>
+                    </div>
+                  </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Имя</label>
@@ -187,8 +220,13 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Email (только чтение)</label>
-                    <Input value={selected.user.email} disabled readOnly />
+                    <label className="text-sm font-medium">Email</label>
+                    <Input
+                      name="email"
+                      type="email"
+                      defaultValue={selected.user.email}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">

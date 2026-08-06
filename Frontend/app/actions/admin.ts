@@ -73,7 +73,9 @@ export async function updateSpecialistAdminAction(formData: FormData) {
   }
 
   const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const phone = String(formData.get("phone") ?? "").trim() || null;
+  const avatarUrl = String(formData.get("avatarUrl") ?? "").trim() || null;
   const bio = String(formData.get("bio") ?? "").trim();
   const education = String(formData.get("education") ?? "").trim();
   const specializationsRaw = String(formData.get("specializations") ?? "");
@@ -86,8 +88,19 @@ export async function updateSpecialistAdminAction(formData: FormData) {
   const telegram = String(formData.get("telegram") ?? "").trim();
   const instagram = String(formData.get("instagram") ?? "").trim();
 
-  if (!name || !bio || !education) {
-    return { success: false, error: "Заполните имя, «о себе» и образование" };
+  if (!name || !email || !bio || !education) {
+    return { success: false, error: "Заполните имя, email, «о себе» и образование" };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: "Некорректный email" };
+  }
+
+  if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) {
+    return {
+      success: false,
+      error: "Фото: укажите полный URL (https://...)",
+    };
   }
 
   const socialLinks: Record<string, string> = {};
@@ -96,15 +109,23 @@ export async function updateSpecialistAdminAction(formData: FormData) {
 
   const profile = await prisma.specialistProfile.findUnique({
     where: { userId },
+    include: { user: { select: { email: true } } },
   });
   if (!profile) {
     return { success: false, error: "Профиль специалиста не найден" };
   }
 
+  if (email !== profile.user.email) {
+    const taken = await prisma.user.findUnique({ where: { email } });
+    if (taken && taken.id !== userId) {
+      return { success: false, error: "Этот email уже занят другим пользователем" };
+    }
+  }
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { name, phone },
+      data: { name, email, phone, avatarUrl },
     }),
     prisma.specialistProfile.update({
       where: { userId },
