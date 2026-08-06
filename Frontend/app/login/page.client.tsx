@@ -1,6 +1,5 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -9,31 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const LOGIN_TIMEOUT_MS = 15_000;
-
-async function signInWithTimeout(
-  email: string,
-  password: string,
-  callbackUrl: string
-) {
-  const resultPromise = signIn("credentials", {
-    email,
-    password,
-    redirect: false,
-    callbackUrl,
-  });
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(
-        new Error(
-          "Таймаут входа. Проверьте NEXTAUTH_URL в .env (для VPS: http://radenie.pro) и перезапустите frontend."
-        )
-      );
-    }, LOGIN_TIMEOUT_MS);
-  });
-
-  return Promise.race([resultPromise, timeoutPromise]);
-}
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -59,29 +33,47 @@ export default function LoginPage() {
               setIsPending(true);
               setError(null);
 
-              try {
-                const result = await signInWithTimeout(
-                  email,
-                  password,
-                  callbackUrl
-                );
+              const controller = new AbortController();
+              const timer = setTimeout(
+                () => controller.abort(),
+                LOGIN_TIMEOUT_MS
+              );
 
-                if (result?.error) {
-                  const code = result.error;
+              try {
+                const res = await fetch("/api/auth/password-login", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email, password }),
+                  signal: controller.signal,
+                });
+
+                const data = (await res.json()) as {
+                  ok?: boolean;
+                  message?: string;
+                  code?: string;
+                };
+
+                if (!res.ok || !data.ok) {
                   setError(
-                    code === "CredentialsSignin"
-                      ? "Неверный email или пароль"
-                      : `Ошибка входа: ${code}. На VPS в .env должно быть NEXTAUTH_URL=http://radenie.pro`
+                    data.message ||
+                      `Ошибка входа${data.code ? ` (${data.code})` : ""}`
                   );
                   return;
                 }
 
                 window.location.assign(callbackUrl);
               } catch (err) {
-                setError(
-                  err instanceof Error ? err.message : "Не удалось войти"
-                );
+                if (err instanceof DOMException && err.name === "AbortError") {
+                  setError(
+                    "Таймаут входа. Проверьте NEXTAUTH_URL=http://radenie.pro и логи frontend."
+                  );
+                } else {
+                  setError(
+                    err instanceof Error ? err.message : "Не удалось войти"
+                  );
+                }
               } finally {
+                clearTimeout(timer);
                 setIsPending(false);
               }
             }}
@@ -111,7 +103,7 @@ export default function LoginPage() {
               {isPending ? "Вход…" : "Войти"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              После seed: admin@radenie.pro или elena@radenie.pro / Radene2024!
+              После seed: admin@radenie.pro / Radene2024!
             </p>
           </form>
         </CardContent>

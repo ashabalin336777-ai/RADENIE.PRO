@@ -1,8 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 
-import { prisma } from "@/lib/prisma";
+import { verifyCredentials } from "@/lib/verify-credentials";
 
 const nextAuthUrl = process.env.NEXTAUTH_URL?.trim() || "";
 const isHttps = nextAuthUrl.startsWith("https://");
@@ -19,7 +18,6 @@ if (process.env.NODE_ENV === "production" && isLocalhostUrl) {
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
-  // За nginx / http-сайтом cookie не должны быть Secure
   useSecureCookies: isHttps,
   providers: [
     CredentialsProvider({
@@ -30,44 +28,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        const result = await verifyCredentials(
+          String(credentials?.email ?? ""),
+          String(credentials?.password ?? "")
+        );
+        if (!result.ok) {
+          console.error("[auth]", result.code, result.message);
           return null;
         }
-
-        const email = credentials.email.trim().toLowerCase();
-        const password = credentials.password;
-
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email },
-          });
-
-          if (!user) {
-            console.error("[auth] user not found:", email);
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(password, user.password);
-          if (!isValid) {
-            console.error("[auth] bad password for:", email);
-            return null;
-          }
-
-          if (user.role !== "SPECIALIST" && user.role !== "ADMIN") {
-            console.error("[auth] role not allowed:", email, user.role);
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          };
-        } catch (error) {
-          console.error("[auth] authorize failed:", error);
-          return null;
-        }
+        return result.user;
       },
     }),
   ],

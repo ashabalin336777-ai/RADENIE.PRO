@@ -25,12 +25,6 @@ sed -i 's|^PUBLIC_PORT=.*|PUBLIC_PORT=80|' .env
 grep -E '^(NEXTAUTH_URL|PUBLIC_PORT)=' .env
 
 docker compose up -d --build frontend nginx
-docker compose exec -T postgres psql -U radenie -d radenie_pro <<'SQL'
-UPDATE "User"
-SET password = '$2a$12$0JSBZwudMGryWDmiiCSHje9AEXQXbwEXH9b6qnZhg4MnYt.9o877e',
-    role = 'ADMIN'
-WHERE email = 'admin@radenie.pro';
-SELECT email, role, left(password, 10) AS hash_start FROM "User" WHERE email = 'admin@radenie.pro';
-SQL
+docker compose exec -T postgres psql -U radenie -d radenie_pro < scripts/reset-admin.sql
 
 echo "Готово. Войдите: http://radenie.pro/login  admin@radenie.pro / Radene2024!"
