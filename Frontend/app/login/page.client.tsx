@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { loginWithPassword } from "@/app/actions/login";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-const LOGIN_TIMEOUT_MS = 15_000;
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -33,47 +32,20 @@ export default function LoginPage() {
               setIsPending(true);
               setError(null);
 
-              const controller = new AbortController();
-              const timer = setTimeout(
-                () => controller.abort(),
-                LOGIN_TIMEOUT_MS
-              );
-
               try {
-                const res = await fetch("/api/auth/password-login", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ email, password }),
-                  signal: controller.signal,
-                });
-
-                const data = (await res.json()) as {
-                  ok?: boolean;
-                  message?: string;
-                  code?: string;
-                };
-
-                if (!res.ok || !data.ok) {
-                  setError(
-                    data.message ||
-                      `Ошибка входа${data.code ? ` (${data.code})` : ""}`
-                  );
+                const result = await loginWithPassword(email, password);
+                if (!result.ok) {
+                  setError(`${result.message} [${result.code}]`);
                   return;
                 }
-
                 window.location.assign(callbackUrl);
               } catch (err) {
-                if (err instanceof DOMException && err.name === "AbortError") {
-                  setError(
-                    "Таймаут входа. Проверьте NEXTAUTH_URL=http://radenie.pro и логи frontend."
-                  );
-                } else {
-                  setError(
-                    err instanceof Error ? err.message : "Не удалось войти"
-                  );
-                }
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Не удалось войти (server action)"
+                );
               } finally {
-                clearTimeout(timer);
                 setIsPending(false);
               }
             }}

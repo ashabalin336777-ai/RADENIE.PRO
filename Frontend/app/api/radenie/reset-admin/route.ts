@@ -7,9 +7,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Аварийный сброс пароля admin (только если ALLOW_ADMIN_RESET=1).
+ * Аварийный сброс пароля — путь ВНЕ [...nextauth], чтобы NextAuth не перехватывал.
  *
- * curl -X POST http://127.0.0.1/api/auth/reset-admin \
+ * В .env: ALLOW_ADMIN_RESET=1 и ADMIN_RESET_TOKEN=...
+ *
+ * curl -X POST http://127.0.0.1/api/radenie/reset-admin \
  *   -H 'Content-Type: application/json' \
  *   -H "x-reset-token: $ADMIN_RESET_TOKEN" \
  *   -d '{"password":"Radene2024!"}'
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { password?: string };
     if (body.password?.trim()) password = body.password.trim();
   } catch {
-    // default password
+    // default
   }
 
   try {
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
       ok: true,
       email: user.email,
       role: user.role,
-      message: "Пароль admin обновлён. Выключите ALLOW_ADMIN_RESET=1",
+      message: "Пароль обновлён. Выключите ALLOW_ADMIN_RESET=1",
     });
   } catch (error) {
     console.error("[reset-admin]", error);
@@ -58,9 +60,7 @@ export async function POST(request: Request) {
       {
         ok: false,
         message:
-          error instanceof Error
-            ? error.message
-            : "Не удалось обновить пароль (нет пользователя или БД)",
+          error instanceof Error ? error.message : "Не удалось обновить пароль",
       },
       { status: 500 }
     );
