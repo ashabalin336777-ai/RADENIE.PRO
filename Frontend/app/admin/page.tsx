@@ -4,6 +4,8 @@ import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { getAdminContext } from "@/lib/queries/admin";
 import { getSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await getSession();
 
@@ -15,27 +17,41 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const data = await getAdminContext(
-    session.user.id,
-    session.user.role as "ADMIN" | "SPECIALIST"
-  );
+  try {
+    const data = await getAdminContext(
+      session.user.id,
+      session.user.role as "ADMIN" | "SPECIALIST"
+    );
 
-  if (!data) {
+    if (!data) {
+      return (
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+          <h1 className="text-2xl font-semibold">Профиль не найден</h1>
+          <p className="mt-2 text-muted-foreground">
+            У вашего аккаунта нет доступа к админке. Для специалиста нужен
+            профиль в БД.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-background px-4 py-12 md:px-6">
+        <div className="mx-auto max-w-5xl">
+          <AdminDashboard data={data} />
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error("[admin] page failed:", error);
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold">Профиль не найден</h1>
+        <h1 className="text-2xl font-semibold">Админка временно недоступна</h1>
         <p className="mt-2 text-muted-foreground">
-          У вашего аккаунта нет профиля специалиста.
+          Не удалось загрузить данные из PostgreSQL. Проверьте контейнер
+          postgres и логи frontend.
         </p>
       </div>
     );
   }
-
-  return (
-    <div className="bg-background px-4 py-12 md:px-6">
-      <div className="mx-auto max-w-5xl">
-        <AdminDashboard data={data} />
-      </div>
-    </div>
-  );
 }

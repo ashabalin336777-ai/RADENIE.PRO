@@ -4,11 +4,26 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 
+const nextAuthUrl = process.env.NEXTAUTH_URL?.trim() || "";
+const isHttps = nextAuthUrl.startsWith("https://");
+const isLocalhostUrl = /localhost|127\.0\.0\.1/.test(nextAuthUrl);
+
+if (process.env.NODE_ENV === "production" && isLocalhostUrl) {
+  console.error(
+    "[auth] NEXTAUTH_URL указывает на localhost в production:",
+    nextAuthUrl,
+    "— вход в админку будет ломаться. Укажите публичный URL, например http://radenie.pro"
+  );
+}
+
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
+  // За nginx / http-сайтом cookie не должны быть Secure
+  useSecureCookies: isHttps,
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -19,20 +34,27 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const email = credentials.email.trim().toLowerCase();
+        const password = credentials.password;
+
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
+            where: { email },
           });
 
-          if (!user) return null;
+          if (!user) {
+            console.error("[auth] user not found:", email);
+            return null;
+          }
 
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-          if (!isValid) return null;
+          const isValid = await bcrypt.compare(password, user.password);
+          if (!isValid) {
+            console.error("[auth] bad password for:", email);
+            return null;
+          }
 
           if (user.role !== "SPECIALIST" && user.role !== "ADMIN") {
+            console.error("[auth] role not allowed:", email, user.role);
             return null;
           }
 
@@ -42,7 +64,8 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
           };
-        } catch {
+        } catch (error) {
+          console.error("[auth] authorize failed:", error);
           return null;
         }
       },
@@ -65,8 +88,8 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret:
-    process.env.NEXTAUTH_SECRET ??
-    process.env.SESSION_SECRET ??
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    process.env.SESSION_SECRET?.trim() ||
     (process.env.NODE_ENV === "development"
       ? "dev-only-secret-change-in-production"
       : undefined),

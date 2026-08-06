@@ -131,7 +131,12 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "admin@radenie.pro" },
-    update: {},
+    update: {
+      name: "Администратор РАДЕНИЕ",
+      password: passwordHash,
+      role: Role.ADMIN,
+      phone: "+7 (495) 123-45-67",
+    },
     create: {
       name: "Администратор РАДЕНИЕ",
       email: "admin@radenie.pro",
@@ -148,6 +153,7 @@ async function main() {
         name: specialist.name,
         phone: specialist.phone,
         role: Role.SPECIALIST,
+        password: passwordHash,
       },
       create: {
         name: specialist.name,

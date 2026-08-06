@@ -36,9 +36,10 @@ services:
       - .env
     environment:
       PORT: "3000"
-      DATABASE_URL: postgresql://radenie:radenie_secret@postgres:5432/radenie_pro
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://radenie.pro}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${SESSION_SECRET}}
+      DATABASE_URL: postgresql://radenie:radenie_secret@postgres:5432/radenie_pro?connect_timeout=5
+      # Публичный URL сайта (НЕ localhost). Для VPS: http://radenie.pro
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://radenie.pro}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${SESSION_SECRET:-radenie-change-me-in-production-min-32}}
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,7 +52,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "${PUBLIC_PORT:-8080}:80"
+      - "${PUBLIC_PORT:-80}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
