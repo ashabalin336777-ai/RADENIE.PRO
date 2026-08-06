@@ -49,6 +49,10 @@ services:
       # Аварийный сброс: ALLOW_ADMIN_RESET=1 + ADMIN_RESET_TOKEN=...
       ALLOW_ADMIN_RESET: ${ALLOW_ADMIN_RESET:-0}
       ADMIN_RESET_TOKEN: ${ADMIN_RESET_TOKEN:-}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - frontend_uploads:/app/uploads
+    user: "1001:1001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,3 +81,4 @@ networks:
 
 volumes:
   postgres_data:
+  frontend_uploads:

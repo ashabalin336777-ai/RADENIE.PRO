@@ -21,9 +21,11 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
-    // Меньше параллелизма = меньше RAM на VPS
     workerThreads: false,
     cpus: 1,
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
   },
   webpack: (config) => {
     config.parallelism = 1;

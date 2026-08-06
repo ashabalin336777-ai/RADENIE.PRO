@@ -159,6 +159,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
               ) : (
                 <form
                   key={selected.userId}
+                  encType="multipart/form-data"
                   action={(formData) => {
                     startTransition(async () => {
                       const result = await updateSpecialistAdminAction(formData);
@@ -194,15 +195,15 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="text-sm font-medium">Фото (URL)</label>
+                      <label className="text-sm font-medium">Фото с диска</label>
                       <Input
-                        name="avatarUrl"
-                        defaultValue={selected.user.avatarUrl ?? ""}
-                        placeholder="https://example.com/photo.jpg"
+                        name="avatar"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Ссылка на изображение (jpg/png/webp). Загрузка файлов —
-                        позже.
+                        JPG / PNG / WEBP, до 3 МБ. Если файл не выбран — текущее
+                        фото сохранится.
                       </p>
                     </div>
                   </div>

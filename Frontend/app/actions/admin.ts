@@ -75,7 +75,6 @@ export async function updateSpecialistAdminAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const phone = String(formData.get("phone") ?? "").trim() || null;
-  const avatarUrl = String(formData.get("avatarUrl") ?? "").trim() || null;
   const bio = String(formData.get("bio") ?? "").trim();
   const education = String(formData.get("education") ?? "").trim();
   const specializationsRaw = String(formData.get("specializations") ?? "");
@@ -87,6 +86,7 @@ export async function updateSpecialistAdminAction(formData: FormData) {
   const rating = Number(formData.get("rating") ?? 0);
   const telegram = String(formData.get("telegram") ?? "").trim();
   const instagram = String(formData.get("instagram") ?? "").trim();
+  const avatarFile = formData.get("avatar");
 
   if (!name || !email || !bio || !education) {
     return { success: false, error: "Заполните имя, email, «о себе» и образование" };
@@ -96,20 +96,13 @@ export async function updateSpecialistAdminAction(formData: FormData) {
     return { success: false, error: "Некорректный email" };
   }
 
-  if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) {
-    return {
-      success: false,
-      error: "Фото: укажите полный URL (https://...)",
-    };
-  }
-
   const socialLinks: Record<string, string> = {};
   if (telegram) socialLinks.telegram = telegram;
   if (instagram) socialLinks.instagram = instagram;
 
   const profile = await prisma.specialistProfile.findUnique({
     where: { userId },
-    include: { user: { select: { email: true } } },
+    include: { user: { select: { email: true, avatarUrl: true } } },
   });
   if (!profile) {
     return { success: false, error: "Профиль специалиста не найден" };
@@ -120,6 +113,16 @@ export async function updateSpecialistAdminAction(formData: FormData) {
     if (taken && taken.id !== userId) {
       return { success: false, error: "Этот email уже занят другим пользователем" };
     }
+  }
+
+  let avatarUrl = profile.user.avatarUrl;
+  if (avatarFile instanceof File && avatarFile.size > 0) {
+    const { saveAvatarUpload } = await import("@/lib/uploads");
+    const uploaded = await saveAvatarUpload(avatarFile, userId);
+    if (!uploaded.ok) {
+      return { success: false, error: uploaded.error };
+    }
+    avatarUrl = uploaded.url;
   }
 
   await prisma.$transaction([
