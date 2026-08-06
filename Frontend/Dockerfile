@@ -10,10 +10,13 @@ RUN apk add --no-cache openssl libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# 2 GB VPS: ограничиваем heap, иначе next build падает с exit 1
-ENV NODE_OPTIONS="--max-old-space-size=1536"
-# Без sync-env (он для локального next dev)
-RUN npx prisma generate && npx next build
+ENV CI=1
+# На 2GB VPS 1536MB heap часто убивает процесс (OOM). Держим запас для OS/Docker.
+ENV NODE_OPTIONS="--max-old-space-size=896"
+ENV DOCKER_BUILD=1
+RUN npx prisma generate
+# Отдельный слой — в логах видно, на каком шаге падает
+RUN npx next build
 
 FROM node:20-alpine AS runner
 WORKDIR /app

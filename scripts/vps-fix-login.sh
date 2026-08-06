@@ -49,17 +49,29 @@ fi
 
 grep -E '^(NEXTAUTH_URL|PUBLIC_PORT|ALLOW_ADMIN_RESET)=' .env
 
-echo "=== 3) Swap (если нет) ==="
+echo "=== 3) Swap 4G (Docker build Next на 2GB RAM без swap падает) ==="
 if ! swapon --show 2>/dev/null | grep -q .; then
   if [[ ! -f /swapfile ]]; then
-    echo "Создаю 2G swap..."
-    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+    echo "Создаю 4G swap..."
+    fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
     chmod 600 /swapfile
     mkswap /swapfile
+    grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
   fi
   swapon /swapfile || true
 fi
-free -h | head -2 || true
+# Если swap меньше 3G — расширим
+SWAP_MB="$(free -m | awk '/Swap:/ {print $2}')"
+if [[ "${SWAP_MB:-0}" -lt 3000 ]]; then
+  echo "Swap мало (${SWAP_MB}MB) — добавляю /swapfile2 (2G)..."
+  if [[ ! -f /swapfile2 ]]; then
+    fallocate -l 2G /swapfile2 || dd if=/dev/zero of=/swapfile2 bs=1M count=2048
+    chmod 600 /swapfile2
+    mkswap /swapfile2
+  fi
+  swapon /swapfile2 || true
+fi
+free -h | head -3 || true
 
 echo "=== 4) Сброс пароля admin через SQL (без Next) ==="
 if [[ ! -f scripts/reset-admin.sql ]]; then
@@ -93,7 +105,11 @@ RESET_RESP="$(curl -sS --max-time 15 -X POST http://127.0.0.1/api/reset-admin \
 echo "$RESET_RESP"
 
 echo "=== 6) Frontend (может занять несколько минут на 2GB) ==="
-docker compose build frontend
+# Освобождаем RAM перед тяжёлой сборкой
+docker compose stop frontend 2>/dev/null || true
+docker system prune -f >/dev/null 2>&1 || true
+export DOCKER_BUILDKIT=1
+docker compose build --progress=plain frontend 2>&1 | tee /tmp/build-frontend.log
 docker compose up -d --force-recreate frontend nginx
 
 echo "=== 7) Финальная проверка ==="
