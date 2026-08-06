@@ -54,3 +54,8 @@ Frontend/prisma/*.db-journal
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# docker image exports
+*.tar
+*.tar.gz
+radenie-frontend.tar*
