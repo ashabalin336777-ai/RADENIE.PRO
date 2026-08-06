@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Bot,
   Calendar,
   FileText,
   LogOut,
+  Users,
   User,
 } from "lucide-react";
 
@@ -15,6 +17,7 @@ import {
   saveArticleAction,
   updateAppointmentStatusAction,
   updateProfileAction,
+  updateSpecialistAdminAction,
 } from "@/app/actions/admin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,13 +30,6 @@ type AdminDashboardProps = {
   data: AdminContext;
 };
 
-const TAB_ITEMS = [
-  { id: "profile", label: "Профиль", icon: User },
-  { id: "calendar", label: "Календарь", icon: Calendar },
-  { id: "ai", label: "AI-Диалоги", icon: Bot },
-  { id: "articles", label: "Статьи", icon: FileText },
-];
-
 function parseTranscript(raw: string) {
   try {
     const parsed = JSON.parse(raw) as { role: string; content: string }[];
@@ -45,16 +41,46 @@ function parseTranscript(raw: string) {
 }
 
 export function AdminDashboard({ data }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState("profile");
+  const router = useRouter();
+  const isAdmin = data.user.role === "ADMIN";
+  const defaultTab = isAdmin ? "specialists" : "profile";
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(
+    data.specialists[0]?.userId ?? null
+  );
 
   const profile = data.profile;
   const socialLinks = (profile?.socialLinks ?? {}) as Record<string, string>;
 
+  const selected = useMemo(
+    () => data.specialists.find((s) => s.userId === selectedUserId) ?? null,
+    [data.specialists, selectedUserId]
+  );
+  const selectedSocial = (selected?.socialLinks ?? {}) as Record<string, string>;
+
+  const tabItems = isAdmin
+    ? [
+        { id: "specialists", label: "Специалисты" },
+        { id: "calendar", label: "Календарь" },
+        { id: "ai", label: "AI-Диалоги" },
+        { id: "articles", label: "Статьи" },
+      ]
+    : [
+        { id: "profile", label: "Профиль" },
+        { id: "calendar", label: "Календарь" },
+        { id: "ai", label: "AI-Диалоги" },
+        { id: "articles", label: "Статьи" },
+      ];
+
   function showSuccess(text = "Сохранено") {
     setMessage(text);
     setTimeout(() => setMessage(null), 3000);
+  }
+
+  function refresh() {
+    router.refresh();
   }
 
   return (
@@ -63,7 +89,8 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
         <div>
           <h1 className="text-3xl font-semibold">Админ-панель</h1>
           <p className="text-sm text-muted-foreground">
-            {data.user.name} · {data.user.role === "ADMIN" ? "Администратор" : "Специалист"}
+            {data.user.name} ·{" "}
+            {isAdmin ? "Администратор" : "Специалист"}
           </p>
         </div>
         <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
@@ -78,75 +105,234 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
         </div>
       )}
 
-      <Tabs
-        tabs={TAB_ITEMS.map(({ id, label }) => ({ id, label }))}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
+      <Tabs tabs={tabItems} activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "profile" && (
+      {activeTab === "specialists" && isAdmin && (
+        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4" />
+                Список
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {data.specialists.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Специалистов пока нет. Запустите seed.
+                </p>
+              ) : (
+                data.specialists.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedUserId(item.userId)}
+                    className={`w-full rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                      selectedUserId === item.userId
+                        ? "bg-brand text-brand-foreground"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <span className="font-medium">{item.user.name}</span>
+                    <span className="mt-0.5 block text-xs opacity-80">
+                      {item.user.email}
+                    </span>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {selected
+                  ? `Редактирование: ${selected.user.name}`
+                  : "Выберите специалиста"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!selected ? (
+                <p className="text-sm text-muted-foreground">
+                  Выберите специалиста слева.
+                </p>
+              ) : (
+                <form
+                  key={selected.userId}
+                  action={(formData) => {
+                    startTransition(async () => {
+                      const result = await updateSpecialistAdminAction(formData);
+                      if (result.success) {
+                        showSuccess("Данные специалиста сохранены");
+                        refresh();
+                      } else {
+                        setMessage(result.error ?? "Ошибка сохранения");
+                      }
+                    });
+                  }}
+                  className="space-y-4"
+                >
+                  <input type="hidden" name="userId" value={selected.userId} />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Имя</label>
+                      <Input name="name" defaultValue={selected.user.name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Телефон</label>
+                      <Input
+                        name="phone"
+                        defaultValue={selected.user.phone ?? ""}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email (только чтение)</label>
+                    <Input value={selected.user.email} disabled readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Специализации (через запятую)
+                    </label>
+                    <Input
+                      name="specializations"
+                      defaultValue={selected.specializations.join(", ")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Рейтинг (0–5)</label>
+                    <Input
+                      name="rating"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      defaultValue={selected.rating}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">О себе</label>
+                    <Textarea name="bio" defaultValue={selected.bio} required />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Образование</label>
+                    <Textarea
+                      name="education"
+                      defaultValue={selected.education}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Видео-визитка (URL embed)
+                    </label>
+                    <Input
+                      name="videoIntroUrl"
+                      defaultValue={selected.videoIntroUrl ?? ""}
+                      placeholder="https://www.youtube.com/embed/..."
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Telegram</label>
+                      <Input
+                        name="telegram"
+                        defaultValue={selectedSocial.telegram ?? ""}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Instagram</label>
+                      <Input
+                        name="instagram"
+                        defaultValue={selectedSocial.instagram ?? ""}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Публичная страница: /specialists/{selected.slug}
+                  </p>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending ? "Сохранение…" : "Сохранить"}
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "profile" && !isAdmin && (
         profile ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Редактирование профиля</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={(formData) => {
-                startTransition(async () => {
-                  await updateProfileAction(formData);
-                  showSuccess("Профиль обновлён");
-                });
-              }}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <label className="text-sm font-medium">О себе</label>
-                <Textarea name="bio" defaultValue={profile.bio} required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Образование</label>
-                <Textarea
-                  name="education"
-                  defaultValue={profile.education}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Видео-визитка (URL embed)</label>
-                <Input
-                  name="videoIntroUrl"
-                  defaultValue={profile.videoIntroUrl ?? ""}
-                  placeholder="https://www.youtube.com/embed/..."
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Редактирование профиля
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form
+                action={(formData) => {
+                  startTransition(async () => {
+                    const result = await updateProfileAction(formData);
+                    if (result.success) {
+                      showSuccess("Профиль обновлён");
+                      refresh();
+                    } else {
+                      setMessage(result.error ?? "Ошибка");
+                    }
+                  });
+                }}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Telegram</label>
-                  <Input
-                    name="telegram"
-                    defaultValue={socialLinks.telegram ?? ""}
+                  <label className="text-sm font-medium">О себе</label>
+                  <Textarea name="bio" defaultValue={profile.bio} required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Образование</label>
+                  <Textarea
+                    name="education"
+                    defaultValue={profile.education}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Instagram</label>
+                  <label className="text-sm font-medium">
+                    Видео-визитка (URL embed)
+                  </label>
                   <Input
-                    name="instagram"
-                    defaultValue={socialLinks.instagram ?? ""}
+                    name="videoIntroUrl"
+                    defaultValue={profile.videoIntroUrl ?? ""}
+                    placeholder="https://www.youtube.com/embed/..."
                   />
                 </div>
-              </div>
-              <Button type="submit" disabled={isPending}>
-                Сохранить профиль
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Telegram</label>
+                    <Input
+                      name="telegram"
+                      defaultValue={socialLinks.telegram ?? ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Instagram</label>
+                    <Input
+                      name="instagram"
+                      defaultValue={socialLinks.instagram ?? ""}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={isPending}>
+                  Сохранить профиль
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="p-6 text-sm text-muted-foreground">
-              У аккаунта администратора нет профиля специалиста. Доступны
-              вкладки календаря, AI-диалогов и статей по всему центру.
+              Профиль специалиста не найден.
             </CardContent>
           </Card>
         )
@@ -155,13 +341,15 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
       {activeTab === "calendar" && (
         <Card>
           <CardHeader>
-            <CardTitle>Календарь приёмов</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Календарь приёмов
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {data.appointments.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Записей пока нет. Клиенты смогут записываться после запуска
-                публичного календаря.
+                Записей пока нет.
               </p>
             ) : (
               data.appointments.map((appointment) => (
@@ -172,12 +360,17 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="font-medium">{appointment.client.name}</p>
+                      {isAdmin && (
+                        <p className="text-sm text-muted-foreground">
+                          Специалист: {appointment.specialist.name}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         {new Date(appointment.startTime).toLocaleString("ru-RU")} —{" "}
-                        {new Date(appointment.endTime).toLocaleTimeString("ru-RU", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(appointment.endTime).toLocaleTimeString(
+                          "ru-RU",
+                          { hour: "2-digit", minute: "2-digit" }
+                        )}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Статус: {appointment.status}
@@ -195,6 +388,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                               "CONFIRMED"
                             );
                             showSuccess("Запись подтверждена");
+                            refresh();
                           })
                         }
                       >
@@ -211,6 +405,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                               "CANCELED"
                             );
                             showSuccess("Запись отменена");
+                            refresh();
                           })
                         }
                       >
@@ -228,7 +423,10 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
       {activeTab === "ai" && (
         <Card>
           <CardHeader>
-            <CardTitle>AI-диалоги клиентов</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              AI-диалоги клиентов
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {data.aiSessions.length === 0 ? (
@@ -241,7 +439,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                 return (
                   <div
                     key={session.id}
-                    className="rounded-2xl border border-border p-4 space-y-3"
+                    className="space-y-3 rounded-2xl border border-border p-4"
                   >
                     <div className="flex flex-col gap-1 text-sm">
                       <p className="font-medium">{session.client.name}</p>
@@ -271,15 +469,20 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Новая статья</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Новая статья
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form
                 action={(formData) => {
                   startTransition(async () => {
                     const result = await saveArticleAction(formData);
-                    if (result.success) showSuccess("Статья сохранена");
-                    else setMessage(result.error ?? "Ошибка");
+                    if (result.success) {
+                      showSuccess("Статья сохранена");
+                      refresh();
+                    } else setMessage(result.error ?? "Ошибка");
                   });
                 }}
                 className="space-y-4"
@@ -303,7 +506,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Мои статьи</CardTitle>
+              <CardTitle>Статьи</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {data.articles.length === 0 ? (
@@ -318,8 +521,8 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                       <div>
                         <p className="font-medium">{article.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {article.published ? "Опубликовано" : "Черновик"} · /blog/
-                          {article.slug}
+                          {article.published ? "Опубликовано" : "Черновик"} ·
+                          /blog/{article.slug}
                         </p>
                       </div>
                       <Button
@@ -330,6 +533,7 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                           startTransition(async () => {
                             await deleteArticleAction(article.id);
                             showSuccess("Статья удалена");
+                            refresh();
                           })
                         }
                       >

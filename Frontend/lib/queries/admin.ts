@@ -17,7 +17,7 @@ export async function getAdminContext(userId: string, role: "ADMIN" | "SPECIALIS
   const profileId = user.specialistProfile?.id;
   const specialistUserId = user.id;
 
-  const [appointments, aiSessions, articles] = await Promise.all([
+  const [appointments, aiSessions, articles, specialists] = await Promise.all([
     prisma.appointment.findMany({
       where:
         role === "ADMIN"
@@ -51,6 +51,22 @@ export async function getAdminContext(userId: string, role: "ADMIN" | "SPECIALIS
       where: role === "ADMIN" ? {} : { authorId: specialistUserId },
       orderBy: { updatedAt: "desc" },
     }),
+    role === "ADMIN"
+      ? prisma.specialistProfile.findMany({
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                avatarUrl: true,
+              },
+            },
+          },
+          orderBy: { user: { name: "asc" } },
+        })
+      : Promise.resolve([]),
   ]);
 
   return {
@@ -59,6 +75,7 @@ export async function getAdminContext(userId: string, role: "ADMIN" | "SPECIALIS
     appointments,
     aiSessions,
     articles,
+    specialists,
   };
 }
 
