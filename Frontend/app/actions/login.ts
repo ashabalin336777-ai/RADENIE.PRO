@@ -19,6 +19,19 @@ export async function loginWithPassword(
   email: string,
   password: string
 ): Promise<LoginActionResult> {
+  const nextAuthUrl = process.env.NEXTAUTH_URL?.trim() || "";
+  if (
+    process.env.NODE_ENV === "production" &&
+    /localhost|127\.0\.0\.1/.test(nextAuthUrl)
+  ) {
+    return {
+      ok: false,
+      code: "CONFIG",
+      message:
+        "NEXTAUTH_URL указывает на localhost. На VPS задайте NEXTAUTH_URL=http://radenie.pro и пересоздайте frontend",
+    };
+  }
+
   const result = await verifyCredentials(email, password);
   if (!result.ok) {
     return { ok: false, code: result.code, message: result.message };
