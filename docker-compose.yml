@@ -35,6 +35,7 @@ services:
       postgres:
         condition: service_healthy
   frontend:
+    image: ${FRONTEND_IMAGE:-radeniepro-frontend:latest}
     build:
       context: ./Frontend
     env_file:

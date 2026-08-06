@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Анонсы лекций, практикумов и открытых встреч центра РАДЕНИЕ",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function EventsPage() {
   const events = await getEvents();
   const now = new Date();

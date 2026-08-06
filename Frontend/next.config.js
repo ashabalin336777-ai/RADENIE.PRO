@@ -1,21 +1,33 @@
+const fs = require("fs");
 const path = require("path");
 const { loadEnvConfig } = require("@next/env");
 
-// Загружаем .env из корня монорепозитория (RADENIE.PRO/.env)
-loadEnvConfig(path.join(__dirname, ".."));
+// Локально подтягиваем корневой .env; в Docker-контексте родителя нет — пропускаем
+const rootDir = path.join(__dirname, "..");
+if (
+  fs.existsSync(path.join(rootDir, ".env")) ||
+  fs.existsSync(path.join(rootDir, ".env.local"))
+) {
+  loadEnvConfig(rootDir);
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  // На слабом VPS eslint во время build съедает RAM и часто даёт exit 1 / OOM
   eslint: { ignoreDuringBuilds: true },
   typescript: {
-    // В Docker-сборке на 2GB не гоняем tsc второй раз (уже проверено локально/CI)
     ignoreBuildErrors: process.env.DOCKER_BUILD === "1",
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // Меньше параллелизма = меньше RAM на VPS
+    workerThreads: false,
+    cpus: 1,
+  },
+  webpack: (config) => {
+    config.parallelism = 1;
+    return config;
   },
 };
 

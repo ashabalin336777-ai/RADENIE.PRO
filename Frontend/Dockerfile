@@ -11,12 +11,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=1
-# На 2GB VPS 1536MB heap часто убивает процесс (OOM). Держим запас для OS/Docker.
-ENV NODE_OPTIONS="--max-old-space-size=896"
 ENV DOCKER_BUILD=1
+# Для сборки на GitHub Actions можно выше; на VPS 2GB — держим низко
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN npx prisma generate
-# Отдельный слой — в логах видно, на каком шаге падает
-RUN npx next build
+RUN npx next build || (echo "==== NEXT BUILD FAILED ====" && df -h && free -h && exit 1)
 
 FROM node:20-alpine AS runner
 WORKDIR /app

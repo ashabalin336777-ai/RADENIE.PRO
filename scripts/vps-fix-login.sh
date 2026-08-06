@@ -104,13 +104,27 @@ RESET_RESP="$(curl -sS --max-time 15 -X POST http://127.0.0.1/api/reset-admin \
   -H "x-reset-token: ${RESET_TOKEN}" || true)"
 echo "$RESET_RESP"
 
-echo "=== 6) Frontend (может занять несколько минут на 2GB) ==="
-# Освобождаем RAM перед тяжёлой сборкой
+echo "=== 6) Frontend ==="
 docker compose stop frontend 2>/dev/null || true
-docker system prune -f >/dev/null 2>&1 || true
+
+OWNER_IMAGE="ghcr.io/ashabalin336777-ai/radenie-pro-frontend:latest"
+# Если FRONTEND_IMAGE пуст — пробуем готовый образ из GHCR (сборка на 2GB нестабильна)
+if ! grep -qE '^FRONTEND_IMAGE=.+' .env || grep -qE '^FRONTEND_IMAGE=$' .env; then
+  upsert_env FRONTEND_IMAGE "$OWNER_IMAGE"
+fi
+
+echo "FRONTEND_IMAGE=$(grep -E '^FRONTEND_IMAGE=' .env | cut -d= -f2-)"
 export DOCKER_BUILDKIT=1
-docker compose build --progress=plain frontend 2>&1 | tee /tmp/build-frontend.log
-docker compose up -d --force-recreate frontend nginx
+
+if docker compose pull frontend; then
+  echo "Используем готовый образ (pull OK)"
+  docker compose up -d --force-recreate --no-build frontend nginx
+else
+  echo "Pull не удался — пробуем локальную сборку (нужен swap)..."
+  docker system prune -f >/dev/null 2>&1 || true
+  docker compose build --progress=plain frontend 2>&1 | tee /tmp/build-frontend.log
+  docker compose up -d --force-recreate frontend nginx
+fi
 
 echo "=== 7) Финальная проверка ==="
 docker compose ps

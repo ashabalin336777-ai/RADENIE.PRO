@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { SpecialistCard } from "@/components/specialists/specialist-card";
 import { getSpecialists } from "@/lib/queries/specialists";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const specialists = await getSpecialists();
 

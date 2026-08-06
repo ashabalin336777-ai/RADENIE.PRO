@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Каталог психологов и телесных терапевтов центра РАДЕНИЕ",
 };
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   searchParams: { specialization?: string };
 };
