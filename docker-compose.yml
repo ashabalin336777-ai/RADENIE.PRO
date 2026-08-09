@@ -43,8 +43,8 @@ services:
     environment:
       PORT: "3000"
       DATABASE_URL: postgresql://radenie:radenie_secret@postgres:5432/radenie_pro?connect_timeout=5
-      # Публичный URL сайта (НЕ localhost). Для VPS: http://radenie.pro
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://radenie.pro}
+      # Публичный URL сайта (НЕ localhost). Для VPS с SSL: https://radenie.pro
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://radenie.pro}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${SESSION_SECRET:-radenie-change-me-in-production-min-32}}
       # Аварийный сброс: ALLOW_ADMIN_RESET=1 + ADMIN_RESET_TOKEN=...
       ALLOW_ADMIN_RESET: ${ALLOW_ADMIN_RESET:-0}
@@ -65,9 +65,11 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "${PUBLIC_PORT:-80}:80"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - frontend
       - backend
