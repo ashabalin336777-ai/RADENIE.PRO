@@ -45,21 +45,21 @@ export function Footer() {
           <ul className="space-y-3 text-sm text-brand-foreground/85">
             <li className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Москва, ул. Примерная, 10</span>
+              <span>Новосибирск, ул.Богдана-Хмельницкого, 2</span>
             </li>
             <li className="flex items-center gap-2">
               <Phone className="h-4 w-4 shrink-0" />
-              <a href="tel:+74951234567" className="hover:text-brand-foreground">
-                +7 (495) 123-45-67
+              <a href="tel:88002345685" className="hover:text-brand-foreground">
+                8 800 2345685
               </a>
             </li>
             <li className="flex items-center gap-2">
               <Mail className="h-4 w-4 shrink-0" />
               <a
-                href="mailto:hello@radenie.pro"
+                href="mailto:ra@radenie.pro"
                 className="hover:text-brand-foreground"
               >
-                hello@radenie.pro
+                ra@radenie.pro
               </a>
             </li>
           </ul>

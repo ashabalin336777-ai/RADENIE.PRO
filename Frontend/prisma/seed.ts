@@ -135,14 +135,14 @@ async function main() {
       name: "Администратор РАДЕНИЕ",
       password: passwordHash,
       role: Role.ADMIN,
-      phone: "+7 (495) 123-45-67",
+      phone: "8 800 2345685",
     },
     create: {
       name: "Администратор РАДЕНИЕ",
       email: "admin@radenie.pro",
       password: passwordHash,
       role: Role.ADMIN,
-      phone: "+7 (495) 123-45-67",
+      phone: "8 800 2345685",
     },
   });
 
@@ -272,7 +272,7 @@ async function main() {
         description:
           "Разберём, как сохранять эмоциональную близость в долгих отношениях. Формат: лекция + Q&A.",
         date: eventBase,
-        location: "Москва, ул. Примерная, 10 · зал «Гармония»",
+        location: "Новосибирск, ул.Богдана-Хмельницкого, 2 · зал «Гармония»",
       },
       {
         title: "Практикум «Тело и эмоции»",
@@ -287,7 +287,7 @@ async function main() {
         description:
           "Знакомство с методом, ответы на вопросы, возможность записаться на индивидуальную сессию.",
         date: event3,
-        location: "Москва, центр РАДЕНИЕ",
+        location: "Новосибирск, центр РАДЕНИЕ",
       },
     ],
   });

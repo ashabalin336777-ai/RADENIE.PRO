@@ -36,11 +36,11 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <a
-            href="tel:+74951234567"
+            href="tel:88002345685"
             className="hidden items-center gap-2 text-sm text-brand-foreground/90 hover:text-brand-foreground md:flex"
           >
             <Phone className="h-4 w-4" />
-            +7 (495) 123-45-67
+            8 800 2345685
           </a>
           <Button variant="accent" size="sm" asChild>
             <Link href="/specialists">Записаться</Link>
