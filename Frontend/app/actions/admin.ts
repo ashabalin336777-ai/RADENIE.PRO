@@ -29,35 +29,126 @@ async function getSpecialistUserId(sessionUserId: string, role: string) {
 export async function updateProfileAction(formData: FormData) {
   const session = await requireAdminSession();
 
-  // Свой профиль — только у SPECIALIST
   if (session.user.role !== "SPECIALIST") {
     return { success: false, error: "Используйте редактирование специалиста" };
   }
 
   const userId = session.user.id;
-  const bio = String(formData.get("bio") ?? "");
-  const education = String(formData.get("education") ?? "");
-  const videoIntroUrl = String(formData.get("videoIntroUrl") ?? "") || null;
-  const telegram = String(formData.get("telegram") ?? "") || undefined;
-  const instagram = String(formData.get("instagram") ?? "") || undefined;
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const bio = String(formData.get("bio") ?? "").trim();
+  const education = String(formData.get("education") ?? "").trim();
+  const videoIntroUrl = String(formData.get("videoIntroUrl") ?? "").trim() || null;
+  const telegram = String(formData.get("telegram") ?? "").trim();
+  const instagram = String(formData.get("instagram") ?? "").trim();
+  const avatarFile = formData.get("avatar");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const newPasswordConfirm = String(formData.get("newPasswordConfirm") ?? "");
+
+  if (!name || !bio || !education) {
+    return { success: false, error: "Заполните имя, «о себе» и образование" };
+  }
 
   const socialLinks: Record<string, string> = {};
   if (telegram) socialLinks.telegram = telegram;
   if (instagram) socialLinks.instagram = instagram;
 
-  await prisma.specialistProfile.update({
-    where: { userId },
-    data: {
-      bio,
-      education,
-      videoIntroUrl,
-      socialLinks,
-    },
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatarUrl: true, name: true },
   });
+  if (!existing) return { success: false, error: "Пользователь не найден" };
+
+  let avatarUrl = existing.avatarUrl;
+  if (avatarFile instanceof File && avatarFile.size > 0) {
+    const { saveAvatarUpload } = await import("@/lib/uploads");
+    const uploaded = await saveAvatarUpload(avatarFile, userId);
+    if (!uploaded.ok) return { success: false, error: uploaded.error };
+    avatarUrl = uploaded.url;
+  }
+
+  if (newPassword || newPasswordConfirm) {
+    if (newPassword.length < 8) {
+      return { success: false, error: "Новый пароль: минимум 8 символов" };
+    }
+    if (newPassword !== newPasswordConfirm) {
+      return { success: false, error: "Пароли не совпадают" };
+    }
+  }
+
+  const bcrypt = (await import("bcryptjs")).default;
+  const passwordHash =
+    newPassword.length >= 8 ? await bcrypt.hash(newPassword, 12) : undefined;
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        phone,
+        avatarUrl,
+        ...(passwordHash ? { password: passwordHash } : {}),
+      },
+    }),
+    prisma.specialistProfile.update({
+      where: { userId },
+      data: {
+        bio,
+        education,
+        videoIntroUrl,
+        socialLinks,
+      },
+    }),
+  ]);
 
   revalidatePath("/admin");
   revalidatePath("/specialists");
   return { success: true };
+}
+
+/** Админ выдаёт/сбрасывает пароль специалисту */
+export async function setSpecialistPasswordAction(formData: FormData) {
+  const session = await requireAdminSession();
+  if (session.user.role !== "ADMIN") {
+    return { success: false, error: "Только администратор" };
+  }
+
+  const userId = String(formData.get("userId") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+
+  if (!userId) return { success: false, error: "Не указан специалист" };
+  if (password.length < 8) {
+    return { success: false, error: "Пароль: минимум 8 символов" };
+  }
+  if (password !== passwordConfirm) {
+    return { success: false, error: "Пароли не совпадают" };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { specialistProfile: true },
+  });
+
+  if (!user || user.role !== "SPECIALIST" || !user.specialistProfile) {
+    return { success: false, error: "Специалист не найден" };
+  }
+
+  const bcrypt = (await import("bcryptjs")).default;
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: passwordHash },
+  });
+
+  revalidatePath("/admin");
+  return {
+    success: true,
+    email: user.email,
+    name: user.name,
+    password,
+  };
 }
 
 /** Админ правит любого специалиста по userId профиля */

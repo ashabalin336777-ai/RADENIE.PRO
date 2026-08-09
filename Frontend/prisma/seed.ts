@@ -3,7 +3,16 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const DEFAULT_PASSWORD = "Radene2024!";
+const ADMIN_PASSWORD = "RadeneAdmin2024!";
+
+/** Стартовые пароли ЛК (админ потом может сменить в панели) */
+const SPECIALIST_PASSWORDS: Record<string, string> = {
+  "elena@radenie.pro": "Elena-Cabinet1!",
+  "marina@radenie.pro": "Marina-Cabinet1!",
+  "dmitry@radenie.pro": "Dmitry-Cabinet1!",
+  "anna@radenie.pro": "Anna-Cabinet1!",
+  "sergey@radenie.pro": "Sergey-Cabinet1!",
+};
 
 const specializations = [
   {
@@ -119,7 +128,8 @@ const specialists = [
 async function main() {
   console.log("Seeding database...");
 
-  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 12);
+  const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  const clientPasswordHash = await bcrypt.hash("Client-Demo1!", 12);
 
   for (const item of specializations) {
     await prisma.specialization.upsert({
@@ -133,27 +143,31 @@ async function main() {
     where: { email: "admin@radenie.pro" },
     update: {
       name: "Администратор РАДЕНИЕ",
-      password: passwordHash,
       role: Role.ADMIN,
       phone: "8 800 2345685",
+      // пароль админа не перезаписываем при повторном seed
     },
     create: {
       name: "Администратор РАДЕНИЕ",
       email: "admin@radenie.pro",
-      password: passwordHash,
+      password: adminPasswordHash,
       role: Role.ADMIN,
       phone: "8 800 2345685",
     },
   });
 
   for (const specialist of specialists) {
+    const initialPassword =
+      SPECIALIST_PASSWORDS[specialist.email] ?? "Specialist-Cabinet1!";
+    const passwordHash = await bcrypt.hash(initialPassword, 12);
+
     const user = await prisma.user.upsert({
       where: { email: specialist.email },
       update: {
         name: specialist.name,
         phone: specialist.phone,
         role: Role.SPECIALIST,
-        password: passwordHash,
+        // пароль ЛК не перезаписываем — меняет админ в панели
       },
       create: {
         name: specialist.name,
@@ -195,7 +209,7 @@ async function main() {
     create: {
       name: "Тестовый клиент",
       email: "client@example.com",
-      password: passwordHash,
+      password: clientPasswordHash,
       role: Role.CLIENT,
       phone: "+7 (900) 000-00-00",
     },
@@ -370,7 +384,11 @@ async function main() {
   }
 
   console.log("Seed completed.");
-  console.log(`Default password for test users: ${DEFAULT_PASSWORD}`);
+  console.log(`Admin: admin@radenie.pro / ${ADMIN_PASSWORD}`);
+  console.log("Specialist cabinets (initial passwords, if created fresh):");
+  for (const [email, password] of Object.entries(SPECIALIST_PASSWORDS)) {
+    console.log(`  ${email} / ${password}`);
+  }
 }
 
 main()

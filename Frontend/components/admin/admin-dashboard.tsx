@@ -15,6 +15,7 @@ import {
 import {
   deleteArticleAction,
   saveArticleAction,
+  setSpecialistPasswordAction,
   updateAppointmentStatusAction,
   updateProfileAction,
   updateSpecialistAdminAction,
@@ -87,10 +88,14 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">Админ-панель</h1>
+          <h1 className="text-3xl font-semibold">
+            {isAdmin ? "Админ-панель" : "Личный кабинет"}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {data.user.name} ·{" "}
-            {isAdmin ? "Администратор" : "Специалист"}
+            {isAdmin
+              ? "Администратор · полные права"
+              : "Специалист · ваши данные и записи"}
           </p>
         </div>
         <Button variant="outline" onClick={() => signOut({ callbackUrl: "/" })}>
@@ -291,7 +296,64 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     Публичная страница: /specialists/{selected.slug}
                   </p>
                   <Button type="submit" disabled={isPending}>
-                    {isPending ? "Сохранение…" : "Сохранить"}
+                    {isPending ? "Сохранение…" : "Сохранить данные"}
+                  </Button>
+                </form>
+              )}
+
+              {selected && (
+                <form
+                  className="mt-8 space-y-4 border-t border-border pt-6"
+                  action={(formData) => {
+                    startTransition(async () => {
+                      const result = await setSpecialistPasswordAction(formData);
+                      if (result.success) {
+                        showSuccess(
+                          `Пароль для ${result.name} (${result.email}) установлен. Сообщите его специалисту лично.`
+                        );
+                      } else {
+                        setMessage(result.error ?? "Ошибка");
+                      }
+                    });
+                  }}
+                >
+                  <h3 className="text-base font-semibold">
+                    Личный пароль для входа в кабинет
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Специалист входит на /login со своим email и этим паролем.
+                    Пароль в открытом виде потом не показывается — сохраните его
+                    при выдаче.
+                  </p>
+                  <input type="hidden" name="userId" value={selected.userId} />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Новый пароль</label>
+                      <Input
+                        name="password"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                        placeholder="минимум 8 символов"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Повтор пароля</label>
+                      <Input
+                        name="passwordConfirm"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <p className="rounded-xl bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    Логин специалиста: <strong>{selected.user.email}</strong>
+                  </p>
+                  <Button type="submit" variant="outline" disabled={isPending}>
+                    Выдать / сменить пароль
                   </Button>
                 </form>
               )}
@@ -302,76 +364,150 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
 
       {activeTab === "profile" && !isAdmin && (
         profile ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Редактирование профиля
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                action={(formData) => {
-                  startTransition(async () => {
-                    const result = await updateProfileAction(formData);
-                    if (result.success) {
-                      showSuccess("Профиль обновлён");
-                      refresh();
-                    } else {
-                      setMessage(result.error ?? "Ошибка");
-                    }
-                  });
-                }}
-                className="space-y-4"
-              >
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">О себе</label>
-                  <Textarea name="bio" defaultValue={profile.bio} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Образование</label>
-                  <Textarea
-                    name="education"
-                    defaultValue={profile.education}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Видео-визитка (URL embed)
-                  </label>
-                  <Input
-                    name="videoIntroUrl"
-                    defaultValue={profile.videoIntroUrl ?? ""}
-                    placeholder="https://www.youtube.com/embed/..."
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Мой профиль
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  encType="multipart/form-data"
+                  action={(formData) => {
+                    startTransition(async () => {
+                      const result = await updateProfileAction(formData);
+                      if (result.success) {
+                        showSuccess("Профиль обновлён");
+                        refresh();
+                      } else {
+                        setMessage(result.error ?? "Ошибка");
+                      }
+                    });
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand/10 text-brand">
+                      {data.user.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={data.user.avatarUrl}
+                          alt={data.user.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-semibold">
+                          {data.user.name
+                            .split(" ")
+                            .map((p) => p[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <label className="text-sm font-medium">Фото с диска</label>
+                      <Input
+                        name="avatar"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Имя</label>
+                      <Input name="name" defaultValue={data.user.name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Телефон</label>
+                      <Input
+                        name="phone"
+                        defaultValue={data.user.phone ?? ""}
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Telegram</label>
-                    <Input
-                      name="telegram"
-                      defaultValue={socialLinks.telegram ?? ""}
+                    <label className="text-sm font-medium">Email для входа</label>
+                    <Input value={data.user.email} disabled readOnly />
+                    <p className="text-xs text-muted-foreground">
+                      Смену email делает администратор.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">О себе</label>
+                    <Textarea name="bio" defaultValue={profile.bio} required />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Образование</label>
+                    <Textarea
+                      name="education"
+                      defaultValue={profile.education}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Instagram</label>
+                    <label className="text-sm font-medium">
+                      Видео-визитка (URL embed)
+                    </label>
                     <Input
-                      name="instagram"
-                      defaultValue={socialLinks.instagram ?? ""}
+                      name="videoIntroUrl"
+                      defaultValue={profile.videoIntroUrl ?? ""}
+                      placeholder="https://www.youtube.com/embed/..."
                     />
                   </div>
-                </div>
-                <Button type="submit" disabled={isPending}>
-                  Сохранить профиль
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Telegram</label>
+                      <Input
+                        name="telegram"
+                        defaultValue={socialLinks.telegram ?? ""}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Instagram</label>
+                      <Input
+                        name="instagram"
+                        defaultValue={socialLinks.instagram ?? ""}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3 rounded-2xl border border-border p-4">
+                    <p className="text-sm font-medium">Сменить свой пароль</p>
+                    <p className="text-xs text-muted-foreground">
+                      Оставьте пустым, если менять пароль не нужно.
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Input
+                        name="newPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Новый пароль"
+                        minLength={8}
+                      />
+                      <Input
+                        name="newPasswordConfirm"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Повтор пароля"
+                        minLength={8}
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={isPending}>
+                    Сохранить профиль
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <Card>
             <CardContent className="p-6 text-sm text-muted-foreground">
-              Профиль специалиста не найден.
+              Профиль специалиста не найден. Обратитесь к администратору.
             </CardContent>
           </Card>
         )

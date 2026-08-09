@@ -18,7 +18,7 @@ export default function LoginPage() {
     <div className="flex min-h-[70vh] items-center justify-center bg-background px-4 py-16">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Вход для специалистов</CardTitle>
+          <CardTitle>Вход в кабинет</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -55,9 +55,8 @@ export default function LoginPage() {
               <Input
                 name="email"
                 type="email"
-                placeholder="admin@radenie.pro"
+                placeholder="email@radenie.pro"
                 autoComplete="username"
-                defaultValue="admin@radenie.pro"
                 required
               />
             </div>
@@ -75,7 +74,8 @@ export default function LoginPage() {
               {isPending ? "Вход…" : "Войти"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              После seed: admin@radenie.pro / Radene2024!
+              Администратор: admin@radenie.pro · Специалисты входят со своими
+              личными паролями, которые выдаёт администратор.
             </p>
           </form>
         </CardContent>
