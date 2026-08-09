@@ -18,6 +18,11 @@ dist/
 # misc
 .DS_Store
 *.pem
+*.key
+*.crt
+
+# SSL certificates (never commit private keys)
+SSL/
 
 # debug
 npm-debug.log*

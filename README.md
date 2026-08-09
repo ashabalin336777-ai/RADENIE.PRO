@@ -1,9 +1,13 @@
 # РАДЕНИЕ
 
 **Центр психологических услуг и телесной терапии**  
-Сайт: [radenie.pro](https://radenie.pro)
+Сайт: [https://radenie.pro](https://radenie.pro)
 
-MVP веб-приложения: каталог специалистов, AI-помощник для подбора, админ-панель, блог и календарь (задел).
+Репозиторий: [github.com/ashabalin336777-ai/RADENIE.PRO](https://github.com/ashabalin336777-ai/RADENIE.PRO)
+
+MVP: каталог специалистов, AI-помощник, админ-панель и личные кабинеты специалистов, блог и календарь.
+
+**Контакты на сайте:** 8 800 234-56-85 · Новосибирск, ул. Богдана-Хмельницкого, 2 · ra@radenie.pro
 
 ---
 
@@ -13,10 +17,10 @@ MVP веб-приложения: каталог специалистов, AI-п�
 |------|------------|
 | Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui |
 | Backend API | Express (прокси через nginx) |
-| БД | PostgreSQL, Prisma ORM |
-| Auth | NextAuth.js (роли: ADMIN, SPECIALIST, CLIENT) |
-| AI | OpenAI SDK → VseLLM API |
-| Деплой | Docker Compose, nginx |
+| БД | PostgreSQL 16, Prisma ORM |
+| Auth | NextAuth.js (роли: `ADMIN`, `SPECIALIST`, `CLIENT`) |
+| AI | OpenAI SDK → [VseLLM](https://vsellm.ru) (или прямой OpenAI) |
+| Деплой | Docker Compose, nginx, HTTPS (порты 80/443) |
 
 ---
 
@@ -24,36 +28,63 @@ MVP веб-приложения: каталог специалистов, AI-п�
 
 ```
 RADENIE.PRO/
-├── Frontend/          # Next.js приложение (основной код)
-│   ├── app/           # Страницы и API routes
-│   ├── components/    # UI-компоненты
-│   ├── prisma/        # Схема БД и seed
-│   └── lib/           # Утилиты, Prisma, auth
-├── Backend/           # Express API (/api/health)
-├── nginx/             # Reverse proxy
+├── Frontend/                 # Next.js (основной код)
+│   ├── app/                  # Страницы, server actions, API routes
+│   ├── components/           # UI, админ-панель, кабинет
+│   ├── prisma/               # Схема БД и seed
+│   └── lib/                  # Prisma, auth, uploads, AI
+├── Backend/                  # Express (/health, аварийный reset-admin)
+├── nginx/                    # Reverse proxy + HTTPS
+│   └── certs/                # SSL на сервере (не в git)
+├── scripts/                  # Деплой, HTTPS, сброс пароля
 ├── docker-compose.yml
-├── .env.example       # Шаблон секретов (скопировать в .env)
+├── .env.example
 └── README.md
 ```
 
 ---
 
-## Быстрый старт (Docker)
+## Роли и кабинеты
 
-### 1. Настройте переменные окружения
+| Роль | Вход | Раздел `/admin` |
+|------|------|-----------------|
+| **ADMIN** | `admin@radenie.pro` | **Админ-панель** — специалисты, выдача/сброс паролей ЛК, календари, статьи, AI центра |
+| **SPECIALIST** | email специалиста | **Личный кабинет** — свой профиль (фото, контакты), свой пароль, свой календарь/статьи |
+| **CLIENT** | тестовый клиент | без доступа в админку |
+
+Админ может редактировать профили специалистов (имя, телефон, email, фото, bio) и выдавать персональные пароли для ЛК.
+
+---
+
+## Маршруты
+
+| URL | Описание |
+|-----|----------|
+| `/` | Главная |
+| `/specialists` | Каталог с фильтрами |
+| `/specialists/[slug]` | Профиль специалиста |
+| `/ai-assistant` | AI-помощник для подбора |
+| `/legal` | Правила консультирования |
+| `/login` | Вход |
+| `/admin` | Админ-панель / личный кабинет (по роли) |
+
+---
+
+## Быстрый старт (Docker, локально)
+
+### 1. Переменные окружения
 
 ```bash
 cp .env.example .env
 ```
 
-Заполните в `.env`:
-
 | Переменная | Описание |
 |------------|----------|
-| `OPENAI_API_KEY` | Ключ VseLLM / OpenAI |
-| `SESSION_SECRET` | Длинная случайная строка (≥ 32 символов) |
-| `NEXTAUTH_SECRET` | То же или отдельная строка для NextAuth |
-| `PUBLIC_PORT` | `8080` локально, `80` на сервере |
+| `VSELLM_API_KEY` или `OPENAI_API_KEY` | Ключ AI |
+| `SESSION_SECRET` / `NEXTAUTH_SECRET` | Случайные строки ≥ 32 символов |
+| `NEXTAUTH_URL` | Локально: `http://localhost:8080` |
+| `PUBLIC_PORT` | Обычно не нужен для compose с 80/443; см. `.env.example` |
+| `ALLOW_ADMIN_RESET` | `0` в проде; `1` только для аварийного сброса |
 
 ### 2. Запуск
 
@@ -61,36 +92,47 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-### 3. Инициализация базы данных
+### 3. БД
 
 ```bash
 docker compose exec frontend npx prisma db push
 docker compose exec frontend npx prisma db seed
 ```
 
-### 4. Открыть в браузере
+### 4. Сайт
 
 ```
 http://localhost:8080
 ```
 
-(или `http://<IP>` при `PUBLIC_PORT=80`)
+На локальной машине без SSL nginx может слушать 80/443 — при занятости портов скорректируйте `docker-compose.yml`.
+
+---
+
+## Тестовые аккаунты (после seed)
+
+| Email | Роль | Пароль (только при первом создании) |
+|-------|------|-------------------------------------|
+| `admin@radenie.pro` | Админ | `RadeneAdmin2024!` |
+| `elena@radenie.pro` | Специалист | `Elena-Cabinet1!` |
+| `marina@radenie.pro` | Специалист | `Marina-Cabinet1!` |
+| `dmitry@radenie.pro` | Специалист | `Dmitry-Cabinet1!` |
+| `anna@radenie.pro` | Специалист | `Anna-Cabinet1!` |
+| `sergey@radenie.pro` | Специалист | `Sergey-Cabinet1!` |
+| `client@example.com` | Клиент | `Client-Demo1!` |
+
+Seed **не перезаписывает** уже существующие пароли. На проде пароли задаёт админ в панели.
 
 ---
 
 ## Локальная разработка (без Docker)
 
-### Требования
-
-- Node.js 20+
-- PostgreSQL 16
-
-### Frontend
+Нужны Node.js 20+ и PostgreSQL 16.
 
 ```bash
 cd Frontend
 npm install
-cp ../.env.example ../.env   # отредактируйте DATABASE_URL и секреты
+# .env в корне проекта RADENIE.PRO/
 npm run db:push
 npm run db:seed
 npm run dev
@@ -98,59 +140,83 @@ npm run dev
 
 Приложение: http://localhost:3000
 
-#### Windows (PowerShell блокирует npm)
+**Windows (PowerShell блокирует npm):** используйте `Frontend/setup.cmd` и `Frontend/dev.cmd`, либо:
 
-Если видите ошибку *«выполнение сценариев отключено»*, используйте **cmd-файлы** или `npm.cmd`:
-
-```cmd
-cd Frontend
-setup.cmd      :: первый раз: install + db:push + seed
-dev.cmd        :: запуск dev-сервера
-```
-
-Либо в PowerShell один раз:
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-> `.env` лежит в **корне** проекта (`RADENIE.PRO/.env`). Frontend подхватывает его автоматически.
-
-### Backend (опционально)
+Backend (опционально):
 
 ```bash
-cd Backend
-npm install
-npm run dev
+cd Backend && npm install && npm run dev
 ```
 
 API: http://localhost:4000/health
 
 ---
 
-## Маршруты приложения
+## Деплой на VPS (Timeweb Cloud)
 
-| URL | Описание |
-|-----|----------|
-| `/` | Главная |
-| `/specialists` | Каталог специалистов с фильтрами |
-| `/specialists/[slug]` | Профиль специалиста |
-| `/ai-assistant` | AI-помощник для подбора |
-| `/legal` | Правила консультирования |
-| `/login` | Вход для специалистов |
-| `/admin` | Админ-панель (защищена) |
+Прод: **https://radenie.pro** (HTTP → HTTPS). Сертификаты лежат на сервере в `nginx/certs/` и **не коммитятся**.
 
----
+### Важно про сборку frontend
 
-## Тестовые аккаунты (после seed)
+На VPS с ~2 GB RAM `docker compose build frontend` часто падает по OOM. Собирайте образ на машине с Docker Desktop и загружайте на VPS.
 
-Пароль для всех: `Radene2024!`
+### Обновление (Windows → VPS)
 
-| Email | Роль |
-|-------|------|
-| `elena@radenie.pro` | Специалист |
-| `marina@radenie.pro` | Специалист |
-| `admin@radenie.pro` | Администратор |
-| `client@example.com` | Клиент |
+1. Собрать и выгрузить образ:
+
+```powershell
+cd C:\Users\admin\RADENIE.PRO
+.\scripts\export-frontend-image.ps1
+```
+
+2. Залить tar и код:
+
+```powershell
+scp .\radenie-frontend.tar root@<VPS_IP>:/opt/RADENIE.PRO/
+```
+
+3. На VPS:
+
+```bash
+cd /opt/RADENIE.PRO
+git pull origin master
+docker load -i radenie-frontend.tar
+# в .env:
+#   NEXTAUTH_URL=https://radenie.pro
+#   FRONTEND_IMAGE=radeniepro-frontend:latest
+#   VSELLM_API_KEY=...
+#   NEXTAUTH_SECRET / SESSION_SECRET
+docker compose up -d --force-recreate --no-build frontend
+docker compose up -d nginx   # если менялся nginx.conf
+```
+
+### Первый запуск на сервере
+
+```bash
+cp .env.example .env   # заполнить секреты и NEXTAUTH_URL=https://radenie.pro
+# положить сертификаты:
+#   nginx/certs/radenie.pro.crt
+#   nginx/certs/radenie.pro.key
+docker compose up -d postgres backend nginx
+# frontend — через docker load (см. выше)
+docker compose exec frontend npx prisma db push
+docker compose exec frontend npx prisma db seed
+```
+
+Включить HTTPS-конфиг (если ещё не применён): `scripts/enable-https.sh`.
+
+### Аварийный сброс пароля admin
+
+Только временно:
+
+1. В `.env`: `ALLOW_ADMIN_RESET=1`, `ADMIN_RESET_TOKEN=<случайный>`
+2. Пересоздать backend/frontend
+3. `POST /api/reset-admin` с токеном (см. Backend) или SQL `scripts/reset-admin.sql`
+4. Сразу вернуть `ALLOW_ADMIN_RESET=0`
 
 ---
 
@@ -159,47 +225,29 @@ API: http://localhost:4000/health
 ```bash
 # Frontend — БД
 cd Frontend
-npm run db:generate   # Prisma Client
-npm run db:push       # Применить схему
-npm run db:migrate    # Миграции (dev)
-npm run db:seed       # Тестовые данные
-npm run db:studio     # Prisma Studio
-
-# Сборка
-npm run build
-npm run start
+npm run db:generate
+npm run db:push
+npm run db:seed
+npm run db:studio
 
 # Docker
-docker compose up -d --build
-docker compose down
+docker compose up -d
 docker compose logs -f frontend
+docker compose down
 ```
 
 ---
 
-## Публикация на GitHub
+## Секреты и git
 
-```bash
-git init
-git add .
-git commit -m "Initial commit: RADENIE MVP"
-git branch -M main
-git remote add origin https://github.com/<user>/radenie.pro.git
-git push -u origin main
-```
+В репозиторий **не** попадают:
 
-> **Важно:** файл `.env` с секретами в репозиторий не попадает (см. `.gitignore`).  
-> В Git публикуйте только `.env.example`.
+- `.env`
+- SSL-ключи (`SSL/`, `nginx/certs/*.key`, `*.pem`)
+- экспорты образов (`*.tar`)
+- загруженные аватары (`Frontend/uploads/`)
 
----
-
-## Деплой на Timeweb Cloud
-
-1. Создайте PostgreSQL и скопируйте `DATABASE_URL` в `.env`
-2. Укажите `PUBLIC_PORT=80`, `NEXTAUTH_URL=https://radenie.pro`
-3. Задайте `OPENAI_API_KEY`, `SESSION_SECRET`, `NEXTAUTH_SECRET`
-4. Запустите: `docker compose up -d --build`
-5. Выполните миграции и seed (см. выше)
+Публикуйте только `.env.example`. Сертификаты Timeweb храните на VPS или в отдельном безопасном хранилище.
 
 ---
 
