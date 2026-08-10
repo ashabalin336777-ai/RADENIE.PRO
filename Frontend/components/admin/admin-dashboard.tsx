@@ -271,11 +271,12 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     <Input
                       name="videoIntroUrl"
                       defaultValue={selected.videoIntroUrl ?? ""}
-                      placeholder="YouTube, VK или Яндекс — ссылка на видео"
+                      placeholder="YouTube, VK или Yandex Cloud Video"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Можно вставить обычную ссылку или embed (YouTube / VK /
-                      Яндекс Диск и Видео). Сохранится в формате для плеера.
+                      Для плеера на сайте: YouTube, VK или embed Yandex Cloud
+                      Video. Ссылка Яндекс.Диска сохранится, но откроется
+                      кнопкой — Диск запрещает встраивание в iframe.
                     </p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
@@ -456,11 +457,12 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     <Input
                       name="videoIntroUrl"
                       defaultValue={profile.videoIntroUrl ?? ""}
-                      placeholder="YouTube, VK или Яндекс — ссылка на видео"
+                      placeholder="YouTube, VK или Yandex Cloud Video"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Можно вставить обычную ссылку или embed (YouTube / VK /
-                      Яндекс Диск и Видео). Сохранится в формате для плеера.
+                      Для плеера на сайте: YouTube, VK или embed Yandex Cloud
+                      Video. Ссылка Яндекс.Диска сохранится, но откроется
+                      кнопкой — Диск запрещает встраивание в iframe.
                     </p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">

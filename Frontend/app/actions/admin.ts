@@ -5,22 +5,15 @@ import { AppointmentStatus } from "@prisma/client";
 
 import { requireAdminSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { normalizeVideoEmbedUrl } from "@/lib/video-embed";
+import { normalizeVideoIntroForStorage } from "@/lib/video-embed";
 
 function parseVideoIntroUrl(formData: FormData): {
   ok: true;
   url: string | null;
 } | { ok: false; error: string } {
-  const raw = String(formData.get("videoIntroUrl") ?? "").trim();
-  if (!raw) return { ok: true, url: null };
-  const url = normalizeVideoEmbedUrl(raw);
-  if (!url) {
-    return {
-      ok: false,
-      error: "Некорректная ссылка на видео. Нужен URL YouTube, VK или Яндекс",
-    };
-  }
-  return { ok: true, url };
+  return normalizeVideoIntroForStorage(
+    String(formData.get("videoIntroUrl") ?? "")
+  );
 }
 
 function slugify(value: string) {

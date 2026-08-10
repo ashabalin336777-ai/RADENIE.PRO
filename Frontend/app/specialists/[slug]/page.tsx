@@ -16,7 +16,7 @@ import {
   getInitials,
   getSpecialistBySlug,
 } from "@/lib/queries/specialists";
-import { normalizeVideoEmbedUrl } from "@/lib/video-embed";
+import { resolveVideoIntro } from "@/lib/video-embed";
 
 type PageProps = {
   params: { slug: string };
@@ -38,7 +38,7 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
 
   const reviews = getReviewsForSpecialist(specialist.slug);
   const socialEntries = Object.entries(specialist.socialLinks ?? {});
-  const videoEmbedUrl = normalizeVideoEmbedUrl(specialist.videoIntroUrl);
+  const videoIntro = resolveVideoIntro(specialist.videoIntroUrl);
 
   return (
     <div className="bg-background px-4 py-12 md:px-6 md:py-16">
@@ -136,15 +136,31 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
           <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-border md:p-8">
             <h2 className="text-xl font-semibold">Видео-визитка</h2>
             <div className="mt-4 aspect-video overflow-hidden rounded-2xl bg-brand/10">
-              {videoEmbedUrl ? (
+              {videoIntro?.mode === "embed" ? (
                 <iframe
-                  src={videoEmbedUrl}
+                  src={videoIntro.url}
                   title={`Видео-визитка ${specialist.name}`}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                   allowFullScreen
                   referrerPolicy="strict-origin-when-cross-origin"
                 />
+              ) : videoIntro?.mode === "external" ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Видео на Яндекс.Диске нельзя встроить в страницу — откройте
+                    по ссылке.
+                  </p>
+                  <Button asChild>
+                    <a
+                      href={videoIntro.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Смотреть видео-визитку
+                    </a>
+                  </Button>
+                </div>
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                   Видео скоро будет добавлено
