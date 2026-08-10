@@ -267,14 +267,16 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Видео-визитка (URL embed)
-                    </label>
+                    <label className="text-sm font-medium">Видео-визитка</label>
                     <Input
                       name="videoIntroUrl"
                       defaultValue={selected.videoIntroUrl ?? ""}
-                      placeholder="https://www.youtube.com/embed/..."
+                      placeholder="YouTube, VK или Яндекс — ссылка на видео"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Можно вставить обычную ссылку или embed (YouTube / VK /
+                      Яндекс Диск и Видео). Сохранится в формате для плеера.
+                    </p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -450,14 +452,16 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Видео-визитка (URL embed)
-                    </label>
+                    <label className="text-sm font-medium">Видео-визитка</label>
                     <Input
                       name="videoIntroUrl"
                       defaultValue={profile.videoIntroUrl ?? ""}
-                      placeholder="https://www.youtube.com/embed/..."
+                      placeholder="YouTube, VK или Яндекс — ссылка на видео"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Можно вставить обычную ссылку или embed (YouTube / VK /
+                      Яндекс Диск и Видео). Сохранится в формате для плеера.
+                    </p>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">

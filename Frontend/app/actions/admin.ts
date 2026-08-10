@@ -5,6 +5,23 @@ import { AppointmentStatus } from "@prisma/client";
 
 import { requireAdminSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { normalizeVideoEmbedUrl } from "@/lib/video-embed";
+
+function parseVideoIntroUrl(formData: FormData): {
+  ok: true;
+  url: string | null;
+} | { ok: false; error: string } {
+  const raw = String(formData.get("videoIntroUrl") ?? "").trim();
+  if (!raw) return { ok: true, url: null };
+  const url = normalizeVideoEmbedUrl(raw);
+  if (!url) {
+    return {
+      ok: false,
+      error: "Некорректная ссылка на видео. Нужен URL YouTube, VK или Яндекс",
+    };
+  }
+  return { ok: true, url };
+}
 
 function slugify(value: string) {
   return value
@@ -38,7 +55,9 @@ export async function updateProfileAction(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const bio = String(formData.get("bio") ?? "").trim();
   const education = String(formData.get("education") ?? "").trim();
-  const videoIntroUrl = String(formData.get("videoIntroUrl") ?? "").trim() || null;
+  const videoParsed = parseVideoIntroUrl(formData);
+  if (!videoParsed.ok) return { success: false, error: videoParsed.error };
+  const videoIntroUrl = videoParsed.url;
   const telegram = String(formData.get("telegram") ?? "").trim();
   const instagram = String(formData.get("instagram") ?? "").trim();
   const avatarFile = formData.get("avatar");
@@ -173,7 +192,9 @@ export async function updateSpecialistAdminAction(formData: FormData) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const videoIntroUrl = String(formData.get("videoIntroUrl") ?? "").trim() || null;
+  const videoParsed = parseVideoIntroUrl(formData);
+  if (!videoParsed.ok) return { success: false, error: videoParsed.error };
+  const videoIntroUrl = videoParsed.url;
   const rating = Number(formData.get("rating") ?? 0);
   const telegram = String(formData.get("telegram") ?? "").trim();
   const instagram = String(formData.get("instagram") ?? "").trim();

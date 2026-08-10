@@ -16,6 +16,7 @@ import {
   getInitials,
   getSpecialistBySlug,
 } from "@/lib/queries/specialists";
+import { normalizeVideoEmbedUrl } from "@/lib/video-embed";
 
 type PageProps = {
   params: { slug: string };
@@ -37,6 +38,7 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
 
   const reviews = getReviewsForSpecialist(specialist.slug);
   const socialEntries = Object.entries(specialist.socialLinks ?? {});
+  const videoEmbedUrl = normalizeVideoEmbedUrl(specialist.videoIntroUrl);
 
   return (
     <div className="bg-background px-4 py-12 md:px-6 md:py-16">
@@ -134,13 +136,14 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
           <section className="rounded-2xl bg-white p-6 shadow-soft ring-1 ring-border md:p-8">
             <h2 className="text-xl font-semibold">Видео-визитка</h2>
             <div className="mt-4 aspect-video overflow-hidden rounded-2xl bg-brand/10">
-              {specialist.videoIntroUrl ? (
+              {videoEmbedUrl ? (
                 <iframe
-                  src={specialist.videoIntroUrl}
+                  src={videoEmbedUrl}
                   title={`Видео-визитка ${specialist.name}`}
                   className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
