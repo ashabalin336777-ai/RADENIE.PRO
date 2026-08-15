@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookingForm } from "@/components/booking/booking-form";
 import { getReviewsForSpecialist } from "@/lib/data/reviews";
+import { formatHourlyRate } from "@/lib/format";
 import {
   getInitials,
   getSpecialistBySlug,
@@ -52,7 +53,7 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
                   <img
                     src={specialist.avatarUrl}
                     alt={specialist.name}
-                    className="h-full w-full rounded-2xl object-cover"
+                    className="h-full w-full rounded-2xl object-cover object-center"
                   />
                 ) : (
                   <span className="text-5xl font-semibold">
@@ -73,6 +74,11 @@ export default async function SpecialistDetailPage({ params }: PageProps) {
                     · {reviews.length} отзывов
                   </span>
                 </div>
+                {formatHourlyRate(specialist.hourlyRateRub) ? (
+                  <p className="text-base font-semibold text-foreground">
+                    {formatHourlyRate(specialist.hourlyRateRub)}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2 text-sm">

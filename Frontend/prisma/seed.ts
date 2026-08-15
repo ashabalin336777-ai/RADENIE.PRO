@@ -50,6 +50,7 @@ const specialists = [
     phone: "+7 (495) 111-11-01",
     specialization: specializations[0].name,
     rating: 4.9,
+    hourlyRateRub: 5000,
     bio: "Системный семейный психолог и секс-коуч. Помогаю парам возвращать близость, проговаривать сложные темы и находить новые форматы общения.",
     education:
       "МГУ, факультет психологии · Институт сексологии и консультирования · 500+ часов супервизии",
@@ -66,6 +67,7 @@ const specialists = [
     phone: "+7 (495) 111-11-02",
     specialization: specializations[1].name,
     rating: 4.8,
+    hourlyRateRub: 4500,
     bio: "Специалист по методу Весисвет. Сопровождаю клиентов в работе с тревогой, выгоранием и телесными реакциями на стресс.",
     education:
       "РГГУ, клиническая психология · Сертификация «Весисвет метод» · Телесно-ориентированная терапия",
@@ -82,6 +84,7 @@ const specialists = [
     phone: "+7 (495) 111-11-03",
     specialization: specializations[2].name,
     rating: 4.9,
+    hourlyRateRub: 5500,
     bio: "Провожу финансовые расстановки и консультации на стыке системной терапии и карьерного коучинга.",
     education:
       "Финансовый университет · Системные расстановки (Hellinger) · Коуч ICF PCC",
@@ -98,6 +101,7 @@ const specialists = [
     phone: "+7 (495) 111-11-04",
     specialization: specializations[3].name,
     rating: 5.0,
+    hourlyRateRub: 4800,
     bio: "Помогаю выстраивать бережные отношения с собой и партнёром, работать с самоценностью и эмоциональной зависимостью.",
     education:
       "СПбГУ, психология · Гештальт-терапия · Схема-терапия (ISST)",
@@ -114,6 +118,7 @@ const specialists = [
     phone: "+7 (495) 111-11-05",
     specialization: specializations[4].name,
     rating: 4.9,
+    hourlyRateRub: 4200,
     bio: "Телесный терапевт. Работаю с хроническим напряжением, психосоматикой и восстановлением ресурса через тело.",
     education:
       "МИП, телесно-ориентированная психотерапия · Метод Фельденкрайза · Сomatic Experiencing",
@@ -186,6 +191,7 @@ async function main() {
         bio: specialist.bio,
         education: specialist.education,
         specializations: [specialist.specialization],
+        hourlyRateRub: specialist.hourlyRateRub,
         videoIntroUrl: specialist.videoIntroUrl,
         socialLinks: specialist.socialLinks,
         rating: specialist.rating,
@@ -196,6 +202,7 @@ async function main() {
         bio: specialist.bio,
         education: specialist.education,
         specializations: [specialist.specialization],
+        hourlyRateRub: specialist.hourlyRateRub,
         videoIntroUrl: specialist.videoIntroUrl,
         socialLinks: specialist.socialLinks,
         rating: specialist.rating,

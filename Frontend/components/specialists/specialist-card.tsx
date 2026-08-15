@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatHourlyRate } from "@/lib/format";
 import { getInitials, type SpecialistListItem } from "@/lib/queries/specialists";
 
 type SpecialistCardProps = {
@@ -17,6 +18,12 @@ type SpecialistCardProps = {
 };
 
 export function SpecialistCard({ specialist }: SpecialistCardProps) {
+  const rateLabel = formatHourlyRate(specialist.hourlyRateRub);
+  const shortBio =
+    specialist.bio.length > 140
+      ? `${specialist.bio.slice(0, 140).trim()}…`
+      : specialist.bio;
+
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       <CardHeader>
@@ -26,7 +33,7 @@ export function SpecialistCard({ specialist }: SpecialistCardProps) {
             <img
               src={specialist.avatarUrl}
               alt={specialist.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-center"
             />
           ) : (
             <span className="text-4xl font-semibold">
@@ -37,9 +44,16 @@ export function SpecialistCard({ specialist }: SpecialistCardProps) {
         <CardTitle>{specialist.name}</CardTitle>
         <CardDescription>{specialist.specializations.join(" · ")}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Онлайн и очно</span>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        {shortBio ? (
+          <p className="text-sm leading-relaxed text-muted-foreground">{shortBio}</p>
+        ) : null}
+        <div className="mt-auto flex items-center justify-between gap-3 text-sm">
+          {rateLabel ? (
+            <span className="font-medium text-foreground">{rateLabel}</span>
+          ) : (
+            <span className="text-muted-foreground">Онлайн и очно</span>
+          )}
           <span className="inline-flex items-center gap-1 text-brand">
             <Star className="h-4 w-4 fill-brand text-brand" />
             {specialist.rating.toFixed(1)}

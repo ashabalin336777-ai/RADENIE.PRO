@@ -9,10 +9,11 @@ export type SpecialistListItem = {
   rating: number;
   phone: string | null;
   avatarUrl: string | null;
+  bio: string;
+  hourlyRateRub: number | null;
 };
 
 export type SpecialistDetail = SpecialistListItem & {
-  bio: string;
   education: string;
   videoIntroUrl: string | null;
   socialLinks: Record<string, string> | null;
@@ -34,6 +35,8 @@ function previewToList(): SpecialistListItem[] {
     rating: item.rating,
     phone: null,
     avatarUrl: null,
+    bio: "",
+    hourlyRateRub: null,
   }));
 }
 
@@ -79,6 +82,8 @@ export async function getSpecialists(
         rating: profile.rating,
         phone: profile.user.phone,
         avatarUrl: profile.user.avatarUrl,
+        bio: profile.bio,
+        hourlyRateRub: profile.hourlyRateRub,
       }));
 
       if (!specialization) return mapped;
@@ -139,6 +144,7 @@ export async function getSpecialistBySlug(
         specializations: profile.specializations,
         rating: profile.rating,
         bio: profile.bio,
+        hourlyRateRub: profile.hourlyRateRub,
         education: profile.education,
         videoIntroUrl: profile.videoIntroUrl,
         socialLinks: profile.socialLinks as Record<string, string> | null,
@@ -162,6 +168,7 @@ export async function getSpecialistBySlug(
     specializations: [preview.specialization],
     rating: preview.rating,
     bio: "Специалист центра РАДЕНИЕ. Подробное описание будет доступно после подключения базы данных.",
+    hourlyRateRub: null,
     education: preview.experience,
     videoIntroUrl: null,
     socialLinks: null,

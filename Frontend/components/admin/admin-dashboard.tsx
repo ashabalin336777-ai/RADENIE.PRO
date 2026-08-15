@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { AdminContext } from "@/lib/queries/admin";
+import { AVATAR_UPLOAD_HINT } from "@/lib/avatar";
 
 type AdminDashboardProps = {
   data: AdminContext;
@@ -200,15 +201,15 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="text-sm font-medium">Фото с диска</label>
+                      <label className="text-sm font-medium">Фото профиля</label>
                       <Input
                         name="avatar"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                       />
                       <p className="text-xs text-muted-foreground">
-                        JPG / PNG / WEBP, до 3 МБ. Если файл не выбран — текущее
-                        фото сохранится.
+                        {AVATAR_UPLOAD_HINT} Если файл не выбран — текущее фото
+                        сохранится.
                       </p>
                     </div>
                   </div>
@@ -243,20 +244,49 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                       defaultValue={selected.specializations.join(", ")}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Рейтинг (0–5)</label>
-                    <Input
-                      name="rating"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="5"
-                      defaultValue={selected.rating}
-                    />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Рейтинг (0–5)</label>
+                      <Input
+                        name="rating"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        defaultValue={selected.rating}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Тариф, ₽ / час сессии
+                      </label>
+                      <Input
+                        name="hourlyRateRub"
+                        type="number"
+                        min="0"
+                        step="100"
+                        defaultValue={selected.hourlyRateRub ?? ""}
+                        placeholder="например 5000"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Пустое поле — тариф на сайте не показывается.
+                      </p>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">О себе</label>
-                    <Textarea name="bio" defaultValue={selected.bio} required />
+                    <label className="text-sm font-medium">
+                      Внешнее описание (на сайте)
+                    </label>
+                    <Textarea
+                      name="bio"
+                      defaultValue={selected.bio}
+                      required
+                      rows={5}
+                      placeholder="Текст для клиентов в каталоге и профиле"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Публичный текст «О специалисте». Виден посетителям сайта.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Образование</label>
@@ -412,12 +442,16 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
-                      <label className="text-sm font-medium">Фото с диска</label>
+                      <label className="text-sm font-medium">Фото профиля</label>
                       <Input
                         name="avatar"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        {AVATAR_UPLOAD_HINT} Если файл не выбран — текущее фото
+                        сохранится.
+                      </p>
                     </div>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
@@ -441,8 +475,36 @@ export function AdminDashboard({ data }: AdminDashboardProps) {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">О себе</label>
-                    <Textarea name="bio" defaultValue={profile.bio} required />
+                    <label className="text-sm font-medium">
+                      Внешнее описание (на сайте)
+                    </label>
+                    <Textarea
+                      name="bio"
+                      defaultValue={profile.bio}
+                      required
+                      rows={5}
+                      placeholder="Текст для клиентов в каталоге и профиле"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Публичный текст «О специалисте». Его видят посетители
+                      сайта.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Тариф, ₽ / час сессии
+                    </label>
+                    <Input
+                      name="hourlyRateRub"
+                      type="number"
+                      min="0"
+                      step="100"
+                      defaultValue={profile.hourlyRateRub ?? ""}
+                      placeholder="например 5000"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Пустое поле — тариф на сайте не показывается.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Образование</label>

@@ -16,6 +16,26 @@ function parseVideoIntroUrl(formData: FormData): {
   );
 }
 
+/** Тариф за час: целое число рублей или null (скрыть). Пустое поле → null. */
+function parseHourlyRateRub(formData: FormData): {
+  ok: true;
+  value: number | null;
+} | { ok: false; error: string } {
+  const raw = String(formData.get("hourlyRateRub") ?? "").trim();
+  if (!raw) return { ok: true, value: null };
+  const value = Number(raw.replace(/\s/g, "").replace(",", "."));
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    return {
+      ok: false,
+      error: "Тариф: укажите целое число рублей за час (или оставьте пустым)",
+    };
+  }
+  if (value > 1_000_000) {
+    return { ok: false, error: "Тариф слишком большой" };
+  }
+  return { ok: true, value };
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -48,6 +68,9 @@ export async function updateProfileAction(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const bio = String(formData.get("bio") ?? "").trim();
   const education = String(formData.get("education") ?? "").trim();
+  const rateParsed = parseHourlyRateRub(formData);
+  if (!rateParsed.ok) return { success: false, error: rateParsed.error };
+  const hourlyRateRub = rateParsed.value;
   const videoParsed = parseVideoIntroUrl(formData);
   if (!videoParsed.ok) return { success: false, error: videoParsed.error };
   const videoIntroUrl = videoParsed.url;
@@ -58,7 +81,10 @@ export async function updateProfileAction(formData: FormData) {
   const newPasswordConfirm = String(formData.get("newPasswordConfirm") ?? "");
 
   if (!name || !bio || !education) {
-    return { success: false, error: "Заполните имя, «о себе» и образование" };
+    return {
+      success: false,
+      error: "Заполните имя, внешнее описание и образование",
+    };
   }
 
   const socialLinks: Record<string, string> = {};
@@ -107,14 +133,24 @@ export async function updateProfileAction(formData: FormData) {
       data: {
         bio,
         education,
+        hourlyRateRub,
         videoIntroUrl,
         socialLinks,
       },
     }),
   ]);
 
+  const profileSlug = await prisma.specialistProfile.findUnique({
+    where: { userId },
+    select: { slug: true },
+  });
+
   revalidatePath("/admin");
   revalidatePath("/specialists");
+  revalidatePath("/");
+  if (profileSlug?.slug) {
+    revalidatePath(`/specialists/${profileSlug.slug}`);
+  }
   return { success: true };
 }
 
@@ -185,6 +221,9 @@ export async function updateSpecialistAdminAction(formData: FormData) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const rateParsed = parseHourlyRateRub(formData);
+  if (!rateParsed.ok) return { success: false, error: rateParsed.error };
+  const hourlyRateRub = rateParsed.value;
   const videoParsed = parseVideoIntroUrl(formData);
   if (!videoParsed.ok) return { success: false, error: videoParsed.error };
   const videoIntroUrl = videoParsed.url;
@@ -194,7 +233,10 @@ export async function updateSpecialistAdminAction(formData: FormData) {
   const avatarFile = formData.get("avatar");
 
   if (!name || !email || !bio || !education) {
-    return { success: false, error: "Заполните имя, email, «о себе» и образование" };
+    return {
+      success: false,
+      error: "Заполните имя, email, внешнее описание и образование",
+    };
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -242,6 +284,7 @@ export async function updateSpecialistAdminAction(formData: FormData) {
         education,
         specializations:
           specializations.length > 0 ? specializations : profile.specializations,
+        hourlyRateRub,
         videoIntroUrl,
         socialLinks,
         rating: Number.isFinite(rating) ? Math.min(5, Math.max(0, rating)) : profile.rating,

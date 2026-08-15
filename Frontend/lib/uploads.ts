@@ -2,6 +2,10 @@ import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
+import { AVATAR_UPLOAD_HINT } from "@/lib/avatar";
+
+export { AVATAR_UPLOAD_HINT };
+
 const MAX_BYTES = 3 * 1024 * 1024; // 3 MB
 const ALLOWED = new Map([
   ["image/jpeg", "jpg"],
@@ -9,7 +13,6 @@ const ALLOWED = new Map([
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
-
 export function getUploadsRoot() {
   return (
     process.env.UPLOAD_DIR?.trim() ||

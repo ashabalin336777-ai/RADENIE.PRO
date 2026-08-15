@@ -45,6 +45,8 @@ model SpecialistProfile {
   bio             String   @db.Text
   education       String   @db.Text
   specializations String[]
+  /// Стоимость часа сессии в рублях (null — не показывать)
+  hourlyRateRub   Int?
   videoIntroUrl   String?
   socialLinks     Json?
   rating          Float    @default(0)
